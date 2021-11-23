@@ -15,7 +15,9 @@ devtools::install_github("ceward18/BayesSEIR")
 
 ## Model Details
 
-You can find the details of the models implemented by BayesSEIR <a href="https://ceward18.github.io/project/bayesseir/">here</a>
+![](man/figures/README-SEIR.png)
+
+You can find the details of the models implemented by BayesSEIR <a href="https://ceward18.github.io/project/bayesseir/">here</a>.
 
 ## Examples
 
