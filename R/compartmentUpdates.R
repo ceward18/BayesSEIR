@@ -171,7 +171,7 @@ update_Rstar_exp <- function(Rstar,  maxInf, epiSize,
   firstInfTime <- min(which(Istar > 0))  + 1
   
   #number updates to do
-  nUpdate <- min(floor(percent * epiSize), 200)
+  nUpdate <- min(floor(percent * epiSize), 5000)
   
   updateCount <- 0
   
@@ -244,7 +244,7 @@ update_Rstar_PS <- function(lengthInf, epiSize, maxInf,
                      dist=dist, psParams=psParams, maxInf=maxInf)
   
   #number updates to do
-  nUpdate <- min(floor(percent * epiSize), 200)
+  nUpdate <- min(floor(percent * epiSize), 5000)
   
   updateCount <- 0
   

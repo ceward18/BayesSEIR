@@ -4,24 +4,24 @@
 #' @useDynLib BayesSEIR, .registration = TRUE
 #' @importFrom Rcpp evalCpp
 getS <- function(S0, Estar) {
-    .Call('_BayesSEIR_getS', PACKAGE = 'BayesSEIR', S0, Estar)
+    .Call(`_BayesSEIR_getS`, S0, Estar)
 }
 
 #' @useDynLib BayesSEIR, .registration = TRUE
 #' @importFrom Rcpp evalCpp
 getE <- function(E0, Estar, Istar) {
-    .Call('_BayesSEIR_getE', PACKAGE = 'BayesSEIR', E0, Estar, Istar)
+    .Call(`_BayesSEIR_getE`, E0, Estar, Istar)
 }
 
 #' @useDynLib BayesSEIR, .registration = TRUE
 #' @importFrom Rcpp evalCpp
 getI <- function(I0, Istar, Rstar) {
-    .Call('_BayesSEIR_getI', PACKAGE = 'BayesSEIR', I0, Istar, Rstar)
+    .Call(`_BayesSEIR_getI`, I0, Istar, Rstar)
 }
 
 #' @useDynLib BayesSEIR, .registration = TRUE
 #' @importFrom Rcpp evalCpp
 colByVec <- function(x, y) {
-    .Call('_BayesSEIR_colByVec', PACKAGE = 'BayesSEIR', x, y)
+    .Call(`_BayesSEIR_colByVec`, x, y)
 }
 
