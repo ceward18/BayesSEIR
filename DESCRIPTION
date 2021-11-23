@@ -1,0 +1,18 @@
+Package: BayesSEIR
+Title: Implements stochastic Bayesian SEIR models
+Version: 1.0
+Authors@R: 
+    person("Caitlin", "Ward", , "caitlin-e-ward@uiowa.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0806-0222"))
+Description: Simulation and model fitting for three types of stochastic Bayesian SEIR models.
+				Infectious period can be specified as exponentially distribution, path-specific,
+				or according to a infectious-duration dependent transmissibility curve.
+License: GPL (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports: Rcpp (>= 1.0.6)
+LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 7.1.2
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+

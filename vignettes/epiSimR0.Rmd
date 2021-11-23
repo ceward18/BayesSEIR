@@ -1,0 +1,315 @@
+---
+title: "Simulate epidemics and compute $R_0(t)$"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Simulate epidemics and compute $R_0(t)$}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup}
+library(knitr)
+library(BayesSEIR)
+```
+
+## Overview
+
+This vignette illustrates the use of the BayesSEIR package to simulate epidemic 
+data and calculate the basic reproductive numbers over epidemic time for 
+three specification of the infectious period:
+
+1. Exponentially distributed duration of the infectious period
+
+2. Path-specific infectious periods according to the Weibull distribution
+
+3. Infectious duration-dependent infectious periods using the gamma PDF
+
+## Simulation Characteristics
+
+For all examples, we simulate an epidemic over 100 days. We assume a population
+size of 1,000,000 individuals, with initial conditions specifying 1 infectious 
+individual and the remaining 999,999 individuals as susceptible. 
+
+```{r}
+# length of the epidemic
+tau <- 100
+
+# initial conditions of the population
+N <- 1e6
+I0 <- 1
+E0 <- 0
+S0 <- N - E0 - I0
+```
+
+We will also assume an intervention occurs on day 50, which causes a significant 
+reduction in transmission. The intensity matrix $\mathbf{X}$ has two columns. The
+first is an intercept which provides constant baseline transmission. The second
+column indicates a change point occurs at time 50, after which transmission is 
+constant. $\boldsymbol{\beta}$ must correspond with $\mathbf{X}$, having one 
+element for each column. The first element of $\boldsymbol{\beta}$ specifies the
+baseline transmission rate. The second element provides the change in transmission
+after the intervention. Here, we specify the second element as negative which
+corresponds to a reduction in transmission after the intervention. Beta is always
+specified on the log scale, so that the inputs can be any real number value.
+
+```{r, fig.width = 6, fig.height = 4}
+# specify the design matrix so there is a change point in transmission at time 50
+X <- cbind(1, c(rep(0, 49), rep(1, tau - 49)))
+
+# beta specifies the transmission rate before the intervention and the change
+# in transmission after the intervention
+beta <- c(-1.3, -1.7)
+
+plot(exp(X %*% beta), type = 'l', main = 'Transmission rate over epidemic time',
+     xlab = 'Epidemic time', ylab = 'Transmission rate')
+```
+
+The last thing that will be kept constant for all three simulations is the 
+specification of the latent period. We will assume the average length of time
+that an individual stays in the exposed compartment is 5 days, which corresponds
+to a rate of $1/5 = 0.2$.
+
+```{r}
+rateE <- 0.2
+```
+
+
+
+## Exponential infectious period
+
+We will start by simulating under the assumption that the infectious period is
+exponentially distributed. Under this model, we must also specify the rate parameter
+associated with the infectious duration distribution. We assume individuals are 
+infectious for 10 days, on average, which corresponds to a rate of $1/10 = 0.1$.
+
+
+```{r}
+rateI <- 0.1
+```
+
+First, let's compute the reproductive number over time according to the parameters
+we have selected.
+
+```{r, fig.width = 6, fig.height = 4}
+# get reproductive number over time
+expR0 <- getR0(infPeriodSpec = 'exp', beta, X, N,
+                  infExpParams = list(rateI = rateI))
+
+plot(expR0, main = 'Time-varying R0', xlab = 'Epidemic Time', ylab = 'R0', 
+     type = 'l', lwd = 2, ylim = c(0, 3))
+abline(h = 1, lty = 2)
+```
+
+The reproductive number starts around 2.8. Due to the intervention, it starts to
+decrease. After the intervention, the reproductive number is flattened around 0.5.
+Knowing this is $R_0(t)$, we would expect transmission to continue to propagate
+until around day 50 and then it should decrease once the reproductive number
+is driven below 1.
+
+Now, we can simulate a few epidemics, setting a seed for reproducibility:
+
+```{r, fig.width = 6, fig.height = 4}
+# simulate using exponentially distributed infectious period
+set.seed(123)
+datExp1 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'exp',
+                  infExpParams = list(rateI = rateI))
+
+datExp2 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'exp',
+                  infExpParams = list(rateI = rateI))
+
+datExp3 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'exp',
+                  infExpParams = list(rateI = rateI))
+
+plot(datExp1$Istar, type = 'l', xlab = 'Epidemic Time', ylab = 'New infections', 
+     main = 'Incidence over time', lwd = 2, ylim = c(0, 21))
+lines(datExp2$Istar, col = 'blue', lwd = 2)
+lines(datExp3$Istar, col = 'tomato', lwd = 2)
+legend('topright', paste0('Epidemic ', 1:3), col = c('black', 'blue', 'tomato'),
+       lwd = 2)
+
+```
+
+```{r, echo = F}
+kable(data.frame('Epi' = 1:3,
+           'NumInf' = c(sum(datExp1$Istar),
+                        sum(datExp2$Istar),
+                        sum(datExp3$Istar))),
+      align = 'c',
+      col.names = c('Epidemic', 'Number Infected'))
+```
+
+
+
+## Path-specific infectious period
+
+Next we will simulate epidemics under the assumption that the infectious period is
+Weibully distributed. Under this model, we must also specify the distribution as 
+Weibull, the values of the associated shape and scale parameters, and the maximum 
+length of time an individual is infectious. We will use a Weibull(7, 8) distribution,
+which corresponds to a mean infectious duration around 7.5 days and removal 
+probabilities after 11 days around 1. We specify the maximum duration of the infectious
+period to be 14 days.
+
+
+```{r, fig.width = 6, fig.height = 4}
+dist <- 'weibull'
+psParams <- list(shape = 7, scale = 8)
+maxInf <- 14
+plot(psProbVec(maxInf, dist, psParams),  type = 'l', lwd = 2,
+     main = 'Removal probability during the infectious period',
+     xlab = 'Days infectious', ylab = 'Removal probability')
+```
+
+Now, we can compute the reproductive number over time according to the parameters
+we have selected.
+
+```{r, fig.width = 6, fig.height = 4}
+# get reproductive number over time
+psR0 <- getR0(infPeriodSpec = 'PS', beta, X, N,
+                  infPSParams = list(dist = dist,
+                                     psParams = psParams,
+                                     maxInf = maxInf))
+
+plot(psR0, main = 'Time-varying R0', xlab = 'Epidemic Time', ylab = 'R0', 
+     type = 'l', lwd = 2, ylim = c(0, 3))
+abline(h = 1, lty = 2)
+```
+
+Now, we can simulate a few epidemics, setting a seed for reproducibility:
+
+```{r, fig.width = 6, fig.height = 4}
+# simulate using exponentially distributed infectious period
+set.seed(123)
+datPS1 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'PS',
+                  infPSParams = list(dist = dist,
+                                     psParams = psParams,
+                                     maxInf = maxInf))
+
+datPS2 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'PS',
+                  infPSParams = list(dist = dist,
+                                     psParams = psParams,
+                                     maxInf = maxInf))
+
+datPS3 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'PS',
+                  infPSParams = list(dist = dist,
+                                     psParams = psParams,
+                                     maxInf = maxInf))
+
+plot(datPS1$Istar, type = 'l', xlab = 'Epidemic Time', ylab = 'New infections', 
+     main = 'Incidence over time', lwd = 2, ylim = c(0, 25))
+lines(datPS2$Istar, col = 'blue', lwd = 2)
+lines(datPS3$Istar, col = 'tomato', lwd = 2)
+legend('topright', paste0('Epidemic ', 1:3), col = c('black', 'blue', 'tomato'),
+       lwd = 2)
+```
+
+```{r, echo = F}
+kable(data.frame('Epi' = 1:3,
+           'NumInf' = c(sum(datPS1$Istar),
+                        sum(datPS2$Istar),
+                        sum(datPS3$Istar))),
+      align = 'c',
+      col.names = c('Epidemic', 'Number Infected'))
+```
+
+
+## Infectious duration-dependent (IDD) transmission
+
+Next we will simulate epidemics under the assumption that the infectious period is
+a fixed length, but that transmissibility varies over the duration of an individual's
+infectious period. Under this model, we must also specify the functional form of the
+IDD curve, the parameters associatd with that curve, and the maximum 
+length of time an individual is infectious. We will use a the gamma pdf with
+shape 4 and rate 1 to describe the IDD curve. This specifies that an individual's
+transmission will peak on day 3 of the infectious period, and tail off by day 12.
+As in the path-specific example, we specify the maximum duration of the 
+infectious period to be 14 days.
+
+
+```{r, fig.width = 6, fig.height = 4}
+iddFun <- dgammaIDD
+iddParams <- list(shape = 4, rate = 1)
+maxInf <- 14
+plot(iddFun(1:maxInf, params = iddParams),  type = 'l', lwd = 2,
+     main = 'Transmissibility during the infectious period',
+     xlab = 'Days infectious', ylab = 'Transmissibility')
+```
+
+
+Due to the different parameterization of the IDD model, we must specify new value
+for the baseline transmissibility, $\beta_1$, in order to have transmission occur.
+
+```{r}
+beta <- c(0.95, -1.7)
+```
+
+
+Now, we can compute the reproductive number over time according to the parameters
+we have selected.
+
+```{r, fig.width = 6, fig.height = 4}
+# get reproductive number over time
+iddR0 <- getR0(infPeriodSpec = 'IDD', beta, X, N,
+                  infIDDParams = list(iddFun = iddFun,
+                                     iddParams = iddParams,
+                                     maxInf = maxInf))
+
+plot(iddR0, main = 'Time-varying R0', xlab = 'Epidemic Time', ylab = 'R0', 
+     type = 'l', lwd = 2, ylim = c(0, 3))
+abline(h = 1, lty = 2)
+```
+
+Now, we can simulate a few epidemics, setting a seed for reproducibility:
+
+```{r, fig.width = 6, fig.height = 4}
+# simulate using exponentially distributed infectious period
+set.seed(123)
+datIDD1 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'IDD',
+                  infIDDParams = list(iddFun = iddFun,
+                                     iddParams = iddParams,
+                                     maxInf = maxInf))
+
+datIDD2 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'IDD',
+                  infIDDParams = list(iddFun = iddFun,
+                                     iddParams = iddParams,
+                                     maxInf = maxInf))
+
+datIDD3 <- simSEIR(S0, E0, I0, N, tau,
+                  beta, X, rateE,
+                  infPeriodSpec = 'IDD',
+                  infIDDParams = list(iddFun = iddFun,
+                                     iddParams = iddParams,
+                                     maxInf = maxInf))
+
+plot(datIDD1$Istar, type = 'l', xlab = 'Epidemic Time', ylab = 'New infections', 
+     main = 'Incidence over time', lwd = 2, ylim = c(0, 100))
+lines(datIDD2$Istar, col = 'blue', lwd = 2)
+lines(datIDD3$Istar, col = 'tomato', lwd = 2)
+legend('topright', paste0('Epidemic ', 1:3), col = c('black', 'blue', 'tomato'),
+       lwd = 2)
+```
+
+```{r, echo = F}
+kable(data.frame('Epi' = 1:3,
+           'NumInf' = c(sum(datIDD1$Istar),
+                                 sum(datIDD2$Istar),
+                                 sum(datIDD3$Istar))),
+      align = 'c',
+      col.names = c('Epidemic', 'Number Infected'))
+```
