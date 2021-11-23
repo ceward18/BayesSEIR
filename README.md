@@ -66,8 +66,7 @@ period:
 
 *π*<sup>(IR)</sup> = *P*(*W* ≤ *w* + 1\|*W* &gt; *w*)
 
-where *W* can follow either an exponential, gamma, or Weibull
-distribution.
+where *W* can follow an exponential, gamma, or Weibull distribution.
 
 3.  Infectious duration-dependent transmission
 
@@ -78,4 +77,4 @@ where the duration of the infectious period is fixed at
 transmissibility over each individual’s infectious period. BayesSEIR
 offers four functions that can be used to specify *f*(*w*), the gamma
 PDF, the log normal PDF, a logistic decay function, and a function
-derived from B-splines.
+derived from splines.

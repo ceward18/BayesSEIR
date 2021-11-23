@@ -12,6 +12,7 @@ knitr::opts_chunk$set(
 )
 ```
 
+
 # Overview
 
 BayesSEIR is an R Package designed to simulate and fit stochastic SEIR models using various methods to model the infectious period.
@@ -96,7 +97,7 @@ $\pi^{(\text{IR})} = 1 - \exp (- \rho_I)$
 
 $\pi^{(\text{IR})} = P(W \leq w + 1 | W > w)$
 
-where $W$ can follow either an exponential, gamma, or Weibull distribution. 
+where $W$ can follow an exponential, gamma, or Weibull distribution. 
 
 3. Infectious duration-dependent transmission
 
@@ -106,5 +107,5 @@ $\pi_t^{(\text{SE})} = 1 - \exp \Big[-e^{\theta_t} \Big(\Sigma f(w) I_{\text{wt}
 where the duration of the infectious period is fixed at $T_I$ days and $f(w) > 0$
 describes a curve of transmissibility over each individual's infectious period. BayesSEIR
 offers four functions that can be used to specify $f(w)$, the gamma PDF, the log
-normal PDF, a logistic decay function, and a function derived from B-splines.
+normal PDF, a logistic decay function, and a function derived from splines.
 
