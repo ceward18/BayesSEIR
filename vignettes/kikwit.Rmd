@@ -1,0 +1,593 @@
+---
+title: "Kikwit Ebola Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Kikwit Ebola Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup}
+library(knitr)
+library(BayesSEIR)
+```
+
+```{r, echo = F}
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+```
+
+
+## Overview
+
+This vignette illustrates the use of the `mcmcSEIR` function in the BayesSEIR 
+package to analyze real data from the Ebola Virus Disease (EVD) outbreak in
+Kikwit, Democratic Republic of the Congo (DRC). Four models are fit to the 
+observed data and compared using WAIC.
+
+1. Exponential infectious period
+
+2. Infectious duration-dependent (IDD) transmissibility using the gamma pdf for the IDD curve
+
+3. IDD transmissibility using logistic decay for the IDD curve
+
+4. Path-specific infectious periods according to the gamma distribution
+
+## DRC Ebola Data
+
+The DRC epidemic of 1995 took place in the Bandundu region, with the primarily 
+impacted location being the city of Kikwit. The population size in this region 
+was 5,363,500 people during the outbreak. 316 cases were documented between 
+March and July 1995, with a case fatality rate of 81%. Control measures were 
+introduced immediately after EVD was identified as the cause of the outbreak 
+on May 9. Due to under-reporting, the data only contains records for 291 of the 
+316 cases identified.
+
+The data are publicly available in the ABSEIR R package. The data provide the 
+daily numbers of newly detected EVD cases during the outbreak.
+
+```{r}
+# devtools::install_git("https://github.com/grantbrown/ABSEIR.git")
+library(ABSEIR)
+ebola <- ABSEIR::Kikwit1995
+head(ebola)
+plot(ebola$Date, ebola$Count, type = 'l', lwd = 2,
+     main = 'Daily Counts of Ebola in Kikwit',
+     xlab = 'Date', ylab = 'Count')
+abline(v = as.Date('1995-05-10'), col = 'blue', lty = 2, lwd = 2)
+legend('topright', 'Date of Intervention', col = 'blue', lty = 2, lwd = 2, bty ='n')
+```
+
+
+## Model Fitting
+
+Model fitting is done using the `mcmcSEIR` function. The first argument to this
+function is a list that contains the important features of the data - 
+
+* `Istar` - the number of new cases over time
+* `S0` - the number of susceptible individuals at the beginning of the epidemic
+* `E0` - the number of exposed individuals at the beginning of the epidemic
+* `I0` - the number of infectious individuals at the beginning of the epidemic
+* `N` - the population size
+
+As three individuals were consecutively reported on the first three days of the
+epidemic, the initial conditions used are $N$ = 5,363,500, $S_0$ = 5,363,497,
+$E_0 = 3$, $I_0 = 0$, and $R_0 = 0$.
+
+```{r}
+N <- 5363500
+E0 <- 3
+S0 <- N - E0
+I0 <- 0
+ebolaDat <- list(Istar = ebola$Count[-c(1:3)],
+                 S0 = S0,
+                 E0 = E0,
+                 I0 = I0,
+                 N = N)
+```
+
+The matrix `X` is used to describe the intensity process. As in Lekone and 
+Finkenstadt (2006), we formulate `X` to describe constant epidemic intensity until the
+time of an intervention, after which transmission decays exponentially. We scale 
+the intervention vector by 100 to improve estimation.
+
+```{r}
+tau <- length(ebolaDat$Istar)
+interventionTime <- which(ebola$Date[-c(1:3)] == as.Date('1995-05-10'))
+
+X <- cbind(1, cumsum(1:tau > interventionTime) / 100)
+```
+
+
+Finally, we must determine our MCMC specifications:
+
+* `niter` - the number of iterations to run the MCMC algorithm for
+* `nburn` - the number of burn-in iterations to be discarded
+
+A full analysis should implement multiple chains using different initial values,
+but we will run only one chain for illustration.
+
+```{r}
+niter <- 100000
+nburn <- 20000
+```
+
+The rest of the parameters are specific to the type of model being fit. 
+For each type of model, we need to specify the initial values, prior distributions,
+and any model specific parameters.
+
+
+###  Exponential infectious period
+
+The model with exponential infectious periods has four parameters: $\beta_1$, 
+$\beta_2$, $\rho_E$, and $\rho_I$.
+
+Normal priors were used for the $\boldsymbol{\beta}$ parameters. To allow the 
+potential for the intervention to have a strong effect the prior on $\beta_2$
+has a large variance. An informative prior was used for the $\rho_E$ parameter, 
+corresponding to a mean length of this period to be between 9 - 10 days. The
+prior on the $\rho_I$ parameter represents a mean infectious period of 6 days.
+
+Finally, we specify `WAIC = TRUE` to tell the function to compute the WAIC, so
+we can compare the model fits later.
+
+```{r, echo = F}
+maxInf <- 21
+iddFun <- dgammaIDD
+
+postResExp <- readRDS('outputFiles/kikwitExp.rds')
+```
+
+```{r, eval = F}
+
+initsList <- list(beta = c(1, -1), rateE = 0.1, rateI = 0.3)
+
+betaPrior <- function(x) {
+  dnorm(x[1], mean = 0, sd = 4, log = T) + 
+    dnorm(x[2], mean = 0, sd = 10, log = T)
+}
+
+rateEPrior <- function(x) {
+  dgamma(x, 11, 100, log = T)
+}
+
+rateIPrior <- function(x) {
+  dgamma(x, 16, 100, log = T)
+}
+
+
+priorList <- list(betaPrior = betaPrior,
+                  rateEPrior = rateEPrior,
+                  rateIPrior = rateIPrior)
+
+postResExp <- mcmcSEIR(dat = ebolaDat, X = X, 
+                       inits = initsList, 
+                       niter = niter, nburn = nburn,
+                       infPeriodSpec = 'exp',
+                       priors = priorList,
+                       WAIC = T)
+
+```
+
+We can look at the trace plots to assess convergence.
+
+```{r}
+postParamsExp <- postResExp$fullPost
+
+par(mfrow = c(2,2))
+plot(postParamsExp$beta1, type = 'l')
+plot(postParamsExp$beta2, type = 'l')
+plot(postParamsExp$rateE, type = 'l')
+plot(postParamsExp$rateI, type = 'l')
+```
+
+We can also calculate the posterior distribution of $R_0(t)$, and plot the 
+mean and credible intervals. We thin the posterior by taking every 10th iteration
+to speed computation.
+
+```{r}
+postBurninIter <- seq(nburn + 1, niter, 10)
+
+R0Post <- vapply(1:length(postBurninIter), function(i) 
+  getR0(infPeriodSpec = 'exp',
+        beta = c(postParamsExp$beta1[i],
+                 postParamsExp$beta2[i]),
+        X = X, N = N,
+        infExpParams = list(rateI = postParamsExp$rateI[i])),
+  numeric(nrow(X)))
+
+
+R0PostSummary <- data.frame(mean = rowMeans(R0Post),
+                            lower = apply(R0Post, 1, quantile, probs = 0.025),
+                            upper = apply(R0Post, 1, quantile, probs = 0.975))
+
+plot(R0PostSummary$mean, type = 'l', lwd = 2, 
+     main = 'Reproductive number over time', 
+     xlab = 'Epidemic time', ylab = 'R0', ylim = c(0, 2.5))
+lines(R0PostSummary$lower, lty = 2, lwd = 2)
+lines(R0PostSummary$upper, lty = 2, lwd = 2)
+```
+
+The exponential model estimates a reproductive number starting around 1.8, which
+then declines due to the intervention, ultimately going to 0 when the epidemic ends.
+
+
+### IDD transmissibility using the gamma pdf for the IDD curve
+
+```{r, echo = F}
+maxInf <- 21
+iddFun <- dgammaIDD
+
+postResIDDGamma <- readRDS('outputFiles/kikwitIDDGamma.rds')
+```
+
+
+The next model we will implement is the infectious duration-dependent (IDD) model
+using the gamma probability density function (PDF) to describe the IDD transmissibility
+curve. The $\beta$ and $\rho_E$ priors are specified identically to the previous 
+model. It is difficult to choose informative priors for the shape and rate parameters
+of the gamma PDF, so Gamma(1, 1) priors are used for both. Generally, individuals
+infected with EVD are infectious for 4 to 10 days, but we set the maximum length
+of the infectious period to 21 days to be conservative. 
+
+
+```{r, eval = F}
+initsList <- list(beta = c(1, -1), rateE = 0.1, 
+                  iddParams = list(shape = 0.2, rate = 0.8))
+
+betaPrior <- function(x) {
+  dnorm(x[1], mean = 0, sd = 4, log = T) + 
+    dnorm(x[2], mean = 0, sd = 10, log = T)
+}
+
+rateEPrior <- function(x) {
+  dgamma(x, 11, 100, log = T)
+}
+
+iddParamsPrior <- function(x) {
+  dgamma(x['shape'], 1, 1, log = T) +
+    dgamma(x['rate'], 1, 1, log = T)
+}
+
+
+priorList <- list(betaPrior = betaPrior,
+                  rateEPrior = rateEPrior,
+                  iddParamsPrior = iddParamsPrior)
+
+maxInf <- 21
+iddFun <- dgammaIDD
+
+postResIDDGamma <- mcmcSEIR(dat = ebolaDat, X = X, 
+                            inits = initsList, 
+                            niter = niter, nburn = nburn,
+                            infPeriodSpec = 'IDD',
+                            priors = priorList,
+                            iddFun = iddFun, maxInf = maxInf,
+                            WAIC = T)
+```
+
+The trace plots for each parameter:
+
+```{r}
+postParamsIDDGamma <- postResIDDGamma$fullPost
+
+par(mfrow = c(2,3))
+plot(postParamsIDDGamma$beta1, type = 'l')
+plot(postParamsIDDGamma$beta2, type = 'l')
+plot(postParamsIDDGamma$rateE, type = 'l')
+plot(postParamsIDDGamma$shape, type = 'l')
+plot(postParamsIDDGamma$rate, type = 'l')
+```
+
+
+Calculating the posterior distribution of $R_0(t)$ we get the following:
+
+```{r}
+postBurninIter <- seq(nburn + 1, niter, 10)
+
+R0Post <- vapply(1:length(postBurninIter), function(i) 
+  getR0(infPeriodSpec = 'IDD',
+        beta = c(postParamsIDDGamma$beta1[i],
+                 postParamsIDDGamma$beta2[i]),
+        X = X, N = N,
+        infIDDParams = list(iddFun = iddFun,
+                            iddParams = list(shape = postParamsIDDGamma$shape[i],
+                                             rate = postParamsIDDGamma$rate[i]),
+                            maxInf = maxInf)),
+  numeric(nrow(X)))
+
+
+R0PostSummary <- data.frame(mean = rowMeans(R0Post),
+                            lower = apply(R0Post, 1, quantile, probs = 0.025),
+                            upper = apply(R0Post, 1, quantile, probs = 0.975))
+
+plot(R0PostSummary$mean, type = 'l', lwd = 2, 
+     main = 'Reproductive number over time', 
+     xlab = 'Epidemic time', ylab = 'R0', ylim = c(0, 2.5))
+lines(R0PostSummary$lower, lty = 2, lwd = 2)
+lines(R0PostSummary$upper, lty = 2, lwd = 2)
+```
+
+The posterior mean indicates the reproductive number is around 1.5 before
+going to 0 by the end of the epidemic. 
+
+Finally, we may also be interested in the posterior distribution of the IDD
+transmissibility curve. We can also compute this using the posteriod samples.
+
+```{r}
+iddCurvePost <- vapply(1:length(postBurninIter), function(i) 
+  do.call(iddFun, args = list(x = 1:maxInf,
+                              params = list(shape = postParamsIDDGamma$shape[i],
+                                            rate = postParamsIDDGamma$rate[i]))),
+  numeric(maxInf))
+
+iddCurvePostSummary <- data.frame(mean = rowMeans(iddCurvePost),
+                                  lower = apply(iddCurvePost, 1, quantile, probs = 0.025),
+                                  upper = apply(iddCurvePost, 1, quantile, probs = 0.975))
+
+plot(iddCurvePostSummary$mean, type = 'l', lwd = 2, 
+     main = 'IDD Transmissibility Curve', 
+     xlab = 'Days Infectious', ylab = 'IDD transmissibility')
+lines(iddCurvePostSummary$lower, lty = 2, lwd = 2)
+lines(iddCurvePostSummary$upper, lty = 2, lwd = 2)
+```
+
+The posterior distribution of the IDD curve indicates transmission is high on
+the first day of the infectious period, then rapidly declines.
+
+
+### IDD transmissibility using logistic decay for the IDD curve
+
+```{r, echo = F}
+maxInf <- 21
+iddFun <- logitIDD
+
+postResIDDLogit <- readRDS('outputFiles/kikwitIDDLogit.rds')
+```
+
+The next model we will implement is the IDD model using the logistic decay 
+function to describe the IDD transmissibility curve. The $\beta$ and $\rho_E$ 
+priors are specified identically to the previous models. As individuals
+infected with EVD are generally infectious for 4 to 10 days, but we set the the 
+mean on the midpoint of the logistic decay curve at 6. Finally, as before, we
+specify the maximum length of the infectious period to 21 days to be conservative. 
+
+
+```{r, eval = F}
+initsList <- list(beta = c(1, -1), rateE = 0.1, 
+                  iddParams = list(mid = 5, rate = 0.8))
+
+betaPrior <- function(x) {
+  dnorm(x[1], mean = 0, sd = 4, log = T) + 
+    dnorm(x[2], mean = 0, sd = 10, log = T)
+}
+
+rateEPrior <- function(x) {
+  dgamma(x, 11, 100, log = T)
+}
+
+iddParamsPrior <- function(x) {
+  dnorm(x['mid'], 6, 1, log = T) +
+    dgamma(x['rate'], 1, 1, log = T)
+}
+
+
+priorList <- list(betaPrior = betaPrior,
+                  rateEPrior = rateEPrior,
+                  iddParamsPrior = iddParamsPrior)
+
+
+maxInf <- 21
+iddFun <- logitIDD
+
+postResIDDLogit <- mcmcSEIR(dat = ebolaDat, X = X, 
+                            inits = initsList, 
+                            niter = niter, nburn = nburn,
+                            infPeriodSpec = 'IDD',
+                            priors = priorList,
+                            iddFun = iddFun, maxInf = maxInf,
+                            WAIC = T)
+```
+
+
+Trace plots:
+
+```{r}
+postParamsIDDLogit <- postResIDDLogit$fullPost
+
+par(mfrow = c(2,3))
+plot(postParamsIDDLogit$beta1, type = 'l')
+plot(postParamsIDDLogit$beta2, type = 'l')
+plot(postParamsIDDLogit$rateE, type = 'l')
+plot(postParamsIDDLogit$mid, type = 'l')
+plot(postParamsIDDLogit$rate, type = 'l')
+```
+
+
+Posterior distribution of $R_0(t)$.
+
+```{r}
+postBurninIter <- seq(nburn + 1, niter, 10)
+
+R0Post <- vapply(1:length(postBurninIter), function(i) 
+  getR0(infPeriodSpec = 'IDD',
+        beta = c(postParamsIDDLogit$beta1[i],
+                 postParamsIDDLogit$beta2[i]),
+        X = X, N = N,
+        infIDDParams = list(iddFun = iddFun,
+                            iddParams = list(mid = postParamsIDDLogit$mid[i],
+                                             rate = postParamsIDDLogit$rate[i]),
+                            maxInf = maxInf)),
+  numeric(nrow(X)))
+
+
+R0PostSummary <- data.frame(mean = rowMeans(R0Post),
+                            lower = apply(R0Post, 1, quantile, probs = 0.025),
+                            upper = apply(R0Post, 1, quantile, probs = 0.975))
+
+plot(R0PostSummary$mean, type = 'l', lwd = 2, 
+     main = 'Reproductive number over time', 
+     xlab = 'Epidemic time', ylab = 'R0', ylim = c(0, 2.5))
+lines(R0PostSummary$lower, lty = 2, lwd = 2)
+lines(R0PostSummary$upper, lty = 2, lwd = 2)
+```
+
+The posterior mean indicates the reproductive number is around 1.6 before
+going to 0 by the end of the epidemic. 
+
+Finally, we may also be interested in the posterior distribution of the IDD
+transmissibility curve. We can also compute this.
+
+```{r}
+postBurninIter <- seq(nburn + 1, niter, 10)
+
+iddCurvePost <- vapply(1:length(postBurninIter), function(i) 
+  do.call(iddFun, args = list(x = 1:maxInf,
+                                 params = list(mid = postParamsIDDLogit$mid[i],
+                                               rate = postParamsIDDLogit$rate[i]))),
+  numeric(maxInf))
+
+iddCurvePostSummary <- data.frame(mean = rowMeans(iddCurvePost),
+                                  lower = apply(iddCurvePost, 1, quantile, probs = 0.025),
+                                  upper = apply(iddCurvePost, 1, quantile, probs = 0.975))
+
+plot(iddCurvePostSummary$mean, type = 'l', lwd = 2, 
+     main = 'IDD Transmissibility Curve', 
+     xlab = 'Days Infectious', ylab = 'IDD transmissibility', ylim = c(0, 1))
+lines(iddCurvePostSummary$lower, lty = 2, lwd = 2)
+lines(iddCurvePostSummary$upper, lty = 2, lwd = 2)
+```
+
+The posterior distribution of the logistic decay IDD curve indicates 
+transmission is high on the first day of the infectious period, then declines
+until become 0 after about 10 days.
+
+
+### Path-specific infectious periods according to the gamma distribution
+
+Finally, we will fit the path-specific model of Porter and Oleson (2013), using
+the gamma distribution to describe the duration of time an individual spends 
+in the infectious period. The $\beta$ and $\rho_E$ priors are specified 
+identically to the previous models. As before, we set the maximum duration to 
+21 days. To reflect a mean infectious period of 6 days, the priors on the shape
+and rate parameters of the infectious distribution are specified to center on
+18 and 3, respectively.
+
+```{r, echo = F}
+maxInf <- 21
+dist <- 'gamma'
+
+postResPS <- readRDS('outputFiles/kikwitPS.rds')
+```
+
+```{r, eval = F}
+initsList <- list(beta = c(1, -1), rateE = 0.1, 
+                  psParams = list(shape = 18, rate = 3))
+
+betaPrior <- function(x) {
+  dnorm(x[1], mean = 0, sd = 4, log = T) + 
+    dnorm(x[2], mean = 0, sd = 10, log = T)
+}
+
+rateEPrior <- function(x) {
+  dgamma(x, 11, 100, log = T)
+}
+
+psParamsPrior <- function(x) {
+  dgamma(x['shape'], 180, 10, log = T) +
+    dgamma(x['rate'], 30, 10, log = T)
+}
+
+
+priorList <- list(betaPrior = betaPrior,
+                  rateEPrior = rateEPrior,
+                  psParamsPrior = psParamsPrior)
+
+dist <- 'gamma'
+maxInf <- 21
+
+postResPS <- mcmcSEIR(dat = ebolaDat, X = X, 
+                      inits = initsList, 
+                      niter = niter, nburn = nburn,
+                      infPeriodSpec = 'PS',
+                      priors = priorList,
+                      dist = dist, maxInf = maxInf,
+                      WAIC = T)
+
+```
+
+
+Trace plots:
+
+```{r}
+postParamsPS <- postResPS$fullPost
+
+par(mfrow = c(2,3))
+plot(postParamsPS$beta1, type = 'l')
+plot(postParamsPS$beta2, type = 'l')
+plot(postParamsPS$rateE, type = 'l')
+plot(postParamsPS$shape, type = 'l')
+plot(postParamsPS$rate, type = 'l')
+```
+
+
+Posterior distribution of $R_0(t)$:
+
+```{r}
+postBurninIter <- seq(nburn + 1, niter, 10)
+
+R0Post <- vapply(1:length(postBurninIter), function(i) 
+  getR0(infPeriodSpec = 'PS',
+        beta = c(postParamsPS$beta1[i],
+                 postParamsPS$beta2[i]),
+        X = X, N = N,
+        infPSParams = list(dist = dist,
+                           psParams = list(shape = postParamsPS$shape[i],
+                                           rate = postParamsPS$rate[i]),
+                           maxInf = maxInf)),
+  numeric(nrow(X)))
+
+
+R0PostSummary <- data.frame(mean = rowMeans(R0Post),
+                            lower = apply(R0Post, 1, quantile, probs = 0.025),
+                            upper = apply(R0Post, 1, quantile, probs = 0.975))
+
+plot(R0PostSummary$mean, type = 'l', lwd = 2, 
+     main = 'Reproductive number over time', 
+     xlab = 'Epidemic time', ylab = 'R0', ylim = c(0, 2.5))
+lines(R0PostSummary$lower, lty = 2, lwd = 2)
+lines(R0PostSummary$upper, lty = 2, lwd = 2)
+```
+
+The path-specific model estimates the highest reproductive number, with the 
+posterior mean just over 2 at the start of the epidemic. 
+
+
+### Compare WAIC
+
+To determine which model fits this data best, we compare the WAIC between the 
+four models.
+
+```{r}
+kable(data.frame(Model = c('Exponential', 'IDD - Gamma PDF', 
+                           'IDD - Logistic Decay', 'Path-specific'),
+                 WAIC = c(postResExp$WAIC,
+                          postResIDDGamma$WAIC,
+                          postResIDDLogit$WAIC,
+                          postResPS$WAIC)))
+``` 
+
+Lower values of WAIC indicate better fit. WAIC indicates that the IDD model using
+the gamma PDF fits the data best, followed by the IDD model using the logistic
+decay function. The path-specific model has the worst fit.
+
+
+## References
+
+Lekone, P. E., Finkenstadt, B. F., 2006. Statistical inference in a stochastic 
+epidemic SEIR model with control intervention: Ebola as a case study. Biometrics.
+62, 1170–1177. DOI: 10.1111/j.1541-0420.2006.00609.x
+
+Porter A. T., Oleson J. J. 2013. A path‐specific SEIR model for use with general 
+latent and infectious time distributions. Biometrics. 69(1), 101-108.
+DOI: 10.1111/j.1541-0420.2012.01809.x
+
