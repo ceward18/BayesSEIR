@@ -100,7 +100,7 @@ where $W$ can follow either an exponential, gamma, or Weibull distribution.
 
 3. Infectious duration-dependent transmission
 
-$\pi_t^{(\text{SE})} = 1 - \exp \Big[-e^{\theta_t} \Big(\text{Sum} f(w) I_{\text{wt}} \Big)/N \Big]$
+$\pi_t^{(\text{SE})} = 1 - \exp \Big[-e^{\theta_t} \Big(\Sigma f(w) I_{\text{wt}} \Big)/N \Big]$
 
 
 where the duration of the infectious period is fixed at $T_I$ days and $f(w) > 0$

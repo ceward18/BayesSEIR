@@ -71,7 +71,7 @@ distribution.
 
 3.  Infectious duration-dependent transmission
 
-*π*<sub>*t*</sub><sup>(SE)</sup> = 1 − exp \[ − *e*<sup>*θ*<sub>*t*</sub></sup>(Sum*f*(*w*)*I*<sub>wt</sub>)/*N*\]
+*π*<sub>*t*</sub><sup>(SE)</sup> = 1 − exp \[ − *e*<sup>*θ*<sub>*t*</sub></sup>(*Σ**f*(*w*)*I*<sub>wt</sub>)/*N*\]
 
 where the duration of the infectious period is fixed at
 *T*<sub>*I*</sub> days and *f*(*w*) &gt; 0 describes a curve of
