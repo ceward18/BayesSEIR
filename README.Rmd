@@ -1,0 +1,110 @@
+---
+output: github_document
+---
+
+
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-"
+)
+```
+
+# Overview
+
+BayesSEIR is an R Package designed to simulate and fit stochastic SEIR models using various methods to model the infectious period.
+
+## Installation
+
+The BayesSEIR package can be installed from Github using the following command.
+
+```{r, eval = FALSE}
+devtools::install_github("ceward18/BayesSEIR")
+```
+
+## Model formulation
+
+```{tikz statFramework, fig.cap = "SEIR", fig.ext = 'png', echo = F}
+\usetikzlibrary{decorations.pathreplacing,positioning, arrows, shapes, calc,shapes.multipart}
+
+\tikzstyle{block1} = [rectangle, draw, fill=green!20, 
+    text width=5em, text centered, rounded corners, minimum height=3em]
+\tikzstyle{block2} = [rectangle, draw, fill=yellow!20, 
+    text width=5em, text centered, rounded corners, minimum height=3em]
+\tikzstyle{block3} = [rectangle, draw, fill=red!20, 
+    text width=5em, text centered, rounded corners, minimum height=3em]
+\tikzstyle{block4} = [rectangle, draw, fill=blue!20, 
+    text width=5em, text centered, rounded corners, minimum height=3em]
+\tikzstyle{block5} = [rectangle, draw, fill=gray!20, 
+    text width=1.5em, text centered, rounded corners, minimum height=1.8em]
+\tikzstyle{line} = [draw, -latex]
+
+\begin{tikzpicture}[node distance = 1cm, auto]
+            % Place nodes
+            \node [block1] (sus) {Susceptible \\ S};
+            \node [block2, right of=sus, node distance=3cm] (exp) { Exposed \\E};
+            \node [block3, right of=exp, node distance=3cm] (Inf) {Infectious \\I};            
+            \node [block4, right of=Inf, node distance=3cm] (rem) {Removed \\R};
+            % Draw edges
+            \path [line] (sus) -- node [above,midway] {$\pi_t^{(SE)}$} (exp);
+            \path [line] (exp) -- node [above,midway] {$\pi^{(EI)}$} (Inf);
+            \path [line] (Inf) -- node [above,midway] {$\pi^{(IR)}$} (rem);
+\end{tikzpicture}
+```
+
+BayesSEIR implements a fully Bayesian discrete-time population-averaged SEIR
+model for epidemic spread. The SEIR model includes four compartments, **S**usceptible,
+**E**xposed, **I**nfectious, and **R**emoved/**R**ecovered. The model assumes
+a closed population of size $N$. Let $t = 1, ..., \tau$ indicate discrete 
+calendar time since the epidemic began and $S_t$, $E_t$, $I_t$, and $R_t$ denote
+the number of individuals in the susceptible, exposed, infectious, and removed 
+compartment in the time interval $(t, t+1]$, respectively. Furthermore, define 
+$E^*_t$, $I^*_{t}$, and $R^*_{t}$ to represent the  number of individuals that 
+transition into the indicated compartment in this interval. 
+
+The stochastic SEIR model formulates the counts of newly exposed, infectious, 
+and removed individuals as a series of binomial equations:
+
+$E^*_t \sim Bin\Big(S_t, \pi_t^{(\text{SE})}\Big)$
+
+$I^*_{t} \sim Bin\Big(E_{t}, \pi^{(\text{EI})} \Big)$
+
+$R^*_{t} \sim Bin\Big(I_{t}, \pi^{(\text{IR})} \Big)$
+
+The transition probabilities, $\pi_t^{(\text{SE})}$, $\pi^{(\text{EI})}$, and
+$\pi^{(\text{IR})}$ are of primary interest. BayesSEIR assumes the transmission
+probability is written as
+
+$\pi_t^{(\text{SE})} = 1 - \exp \Big(-e^{\theta_t} I_t/N\Big)$
+
+where $\theta_t = X_t' \boldsymbol{\beta}$, $X_t$ is a $1 \times p$ row-vector, and $\boldsymbol{\beta}$ is a $p \times 1$ vector used to describe the intensity process.
+
+BayesSEIR uses an exponential distribution to describe the time spent in the 
+latent period, which translates to a probability of
+
+$\pi^{(\text{EI})} = 1 - \exp (- \rho_E)$
+
+BayesSEIR offers three possible methods for specifying the infectious period:
+
+1. Exponentially distributed:
+
+$\pi^{(\text{IR})} = 1 - \exp (- \rho_I)$
+
+2. Path-specific as specified in Porter and Oleson (2013)
+
+$\pi^{(\text{IR})} = P(W \leq w + 1 | W > w)$
+
+where $W$ can follow either an exponential, gamma, or Weibull distribution. 
+
+3. Infectious duration-dependent transmission
+
+$\pi_t^{(\text{SE})} = 1 - \exp \Big[-e^{\theta_t} \Big(\text{Sum} f(w) I_{\text{wt}} \Big)/N \Big]$
+
+
+where the duration of the infectious period is fixed at $T_I$ days and $f(w) > 0$
+describes a curve of transmissibility over each individual's infectious period. BayesSEIR
+offers four functions that can be used to specify $f(w)$, the gamma PDF, the log
+normal PDF, a logistic decay function, and a function derived from B-splines.
+
