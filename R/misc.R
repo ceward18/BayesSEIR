@@ -123,11 +123,12 @@ updateFullRstarOne <- function(fullRstar, updateInfTime,
 #'
 #' @param maxInf Integer. The maximum length of time an individual can 
 #' spend in the infectious compartment
-#' @param dist Character. 
-#' @return The sum of \code{x} and \code{y}.
+#' @param dist Character. Specifies the distribution used to describe the duration
+#' of the infectious period.  One of 'exp', 'gamma', or 'weibull'
+#' @param psParams List. the parameters associated with the distribution specified.
+#' @return The path-specific vector of removal probabilities.
 #' @examples
-#' add(1, 1)
-#' add(10, 1)
+#' psProbVec(1:14, 'gamma', list(shape = 4, rate = 1))
 #' @export
 psProbVec <- function(maxInf, dist, psParams) {
   timeInf <- 1:maxInf

@@ -10,15 +10,17 @@ psProbVec(maxInf, dist, psParams)
 \item{maxInf}{Integer. The maximum length of time an individual can
 spend in the infectious compartment}
 
-\item{dist}{Character.}
+\item{dist}{Character. Specifies the distribution used to describe the duration
+of the infectious period.  One of 'exp', 'gamma', or 'weibull'}
+
+\item{psParams}{List. the parameters associated with the distribution specified.}
 }
 \value{
-The sum of \code{x} and \code{y}.
+The path-specific vector of removal probabilities.
 }
 \description{
 Get path-specific vector of removal probabilities over duration of infection
 }
 \examples{
-add(1, 1)
-add(10, 1)
+psProbVec(1:14, 'gamma', list(shape = 4, rate = 1))
 }
