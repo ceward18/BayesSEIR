@@ -303,8 +303,12 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
     
     
     # if spline model, need to fix the XBasis argument and remove it from the parameters
-    if (!is.character(all.equal(iddFun, splineIDD))) {
-      
+    # iddFun could be character or function
+    if (is.character(iddFun) & all.equal(get(iddFun), splineIDD)) {
+      XBasis <- inits$iddParams$XBasis
+      inits$iddParams <- inits$iddParams[-which(names(inits$iddParams) == 'XBasis')]
+      iddFun <- fixFunArgs(substitute(splineIDD(XBasis=XBasis)))
+    } else if (is.function(iddFun) & all.equal(iddFun, splineIDD)) {
       XBasis <- inits$iddParams$XBasis
       inits$iddParams <- inits$iddParams[-which(names(inits$iddParams) == 'XBasis')]
       iddFun <- fixFunArgs(substitute(splineIDD(XBasis=XBasis)))
