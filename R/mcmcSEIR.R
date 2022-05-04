@@ -308,7 +308,7 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
       XBasis <- inits$iddParams$XBasis
       inits$iddParams <- inits$iddParams[-which(names(inits$iddParams) == 'XBasis')]
       iddFun <- fixFunArgs(substitute(splineIDD(XBasis=XBasis)))
-    } else if (is.function(iddFun) & all.equal(iddFun, splineIDD)) {
+    } else if (is.function(iddFun) & is.logitical(all.equal(iddFun, splineIDD))) {
       XBasis <- inits$iddParams$XBasis
       inits$iddParams <- inits$iddParams[-which(names(inits$iddParams) == 'XBasis')]
       iddFun <- fixFunArgs(substitute(splineIDD(XBasis=XBasis)))
