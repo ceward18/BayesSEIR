@@ -11,6 +11,7 @@ MH_update_adapt <- function(x0, f, S, currentIter, nBurn, ...) {
   p <- length(x0)
   
   U <- rnorm(p)
+  x1 <- c(x0 + S %*% U)
   
   names(x1) <- names(x0)
   
