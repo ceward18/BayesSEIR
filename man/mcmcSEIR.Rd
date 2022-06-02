@@ -17,7 +17,8 @@ mcmcSEIR(
   dist = NULL,
   EKnown = FALSE,
   WAIC = FALSE,
-  progressBar = FALSE
+  progressBar = FALSE,
+  seed = NULL
 )
 }
 \arguments{
@@ -58,6 +59,8 @@ exposure times are known. \code{Estar} must be provided in \code{dat}.}
 \item{WAIC}{logical. If \code{WAIC = TRUE}, WAIC will be computed using post burn-in samples.}
 
 \item{progressBar}{logical. If \code{progressBar = TRUE} a progress bar will be displayed.}
+
+\item{seed}{optional seeding for reproducibility.}
 }
 \value{
 A data frame of posterior samples or a two-element list with posterior samples and WAIC.

@@ -30,6 +30,7 @@
 #' exposure times are known. \code{Estar} must be provided in \code{dat}.
 #' @param WAIC logical. If \code{WAIC = TRUE}, WAIC will be computed using post burn-in samples.
 #' @param progressBar logical. If \code{progressBar = TRUE} a progress bar will be displayed.
+#' @param seed optional seeding for reproducibility.
 #' 
 #' @return A data frame of posterior samples or a two-element list with posterior samples and WAIC.
 #' 
@@ -152,6 +153,13 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
     
   }
   
+  # check for valid seed and set if not specified
+  if (is.null(seed)) {
+    seed <- 1
+  } else if (!is.numeric(seed)) {
+    stop('seed must be numeric')
+  }
+  
   
   
   # check that X is valid
@@ -212,7 +220,7 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
               niter, nburn, inits,
               betaProVar,
               betaPrior, rateEPrior, rateIPrior,
-              WAIC, progressBar)
+              WAIC, progressBar, seed)
       
     } else {
       mcmcExp_EKnown(Estar, Istar, X, maxInf, 
@@ -220,7 +228,7 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
                      niter, nburn, inits,
                      betaProVar,
                      betaPrior, rateEPrior, rateIPrior,
-                     WAIC, progressBar)
+                     WAIC, progressBar, seed)
       
     }
     
@@ -266,21 +274,21 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
     
     betaProVar <- inits$beta/3
     psParamsProVar <- unlist(inits$psParams) / 4
-
+    
     if (!EKnown) {
       mcmcPS(Istar, X, maxInf, S0, E0, I0, N, 
              niter, nburn, inits,
              dist, 
              betaProVar, psParamsProVar,
              betaPrior, rateEPrior, psParamsPrior,
-             WAIC, progressBar)
+             WAIC, progressBar, seed)
     } else {
       mcmcPS_EKnown(Estar, Istar, X, maxInf, S0, E0, I0, N, 
                     niter, nburn, inits,
                     dist, 
                     betaProVar, psParamsProVar,
                     betaPrior, rateEPrior, psParamsPrior,
-                    WAIC, progressBar)
+                    WAIC, progressBar, seed)
     }
     
     
@@ -352,7 +360,7 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
               iddFun, iddParamNames,
               betaProVar, iddParamsProVar,
               betaPrior, rateEPrior, iddParamsPrior,
-              WAIC, progressBar)
+              WAIC, progressBar, seed)
     } else {
       mcmcIDD_EKnown(Estar, Istar, X, maxInf, S0, E0, I0, N, 
                      niter, nburn, inits,

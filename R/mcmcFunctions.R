@@ -14,7 +14,9 @@ mcmcExp <- function(Istar, X, maxInf, S0, E0, I0, N,
                     niter, nburn, inits,
                     betaProVar,
                     betaPrior, rateEPrior, rateIPrior,
-                    WAIC, progress) {
+                    WAIC, progress, seed) {
+  
+  set.seed(seed)
   
   # useful things from data
   epiSize <- sum(Istar)
@@ -136,7 +138,10 @@ mcmcPS <- function(Istar, X, maxInf, S0, E0, I0, N,
                    dist, 
                    betaProVar, psParamsProVar,
                    betaPrior, rateEPrior, psParamsPrior,
-                   WAIC, progress) {
+                   WAIC, progress, seed) {
+  
+  set.seed(seed)
+  
   
   # useful things from data
   epiSize <- sum(Istar)
@@ -278,7 +283,9 @@ mcmcIDD <- function(Istar, X, maxInf, S0, E0, I0, N,
                     iddFun, iddParamNames,
                     betaProVar, iddParamsProVar,
                     betaPrior, rateEPrior, iddParamsPrior,
-                    WAIC, progress) {
+                    WAIC, progress, seed) {
+  
+  set.seed(seed)
   
   # useful things from data
   epiSize <- sum(Istar)
