@@ -173,7 +173,8 @@ mcmcPS_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
   for (i in 2:niter) {
     
     # transmission probability
-    transProbUpdate <- MH_update_adapt(transProbPost[i - 1, ], fcTransProb, S, i, nburn,
+    transProbUpdate <- MH_update_adapt(x0=transProbPost[i - 1, ], f=fcTransProb, 
+                                       S=S, currentIter=i, nBurn=nburn,
                                        susVec=susVec, Estar=Estar, X=X,  
                                        infVec=infVec, popSizesInv=popSizesInv,
                                        betaPrior=betaPrior)
