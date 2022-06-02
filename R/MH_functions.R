@@ -10,7 +10,8 @@ MH_update_adapt <- function(x0, f, S, currentIter, nBurn, ...) {
   
   p <- length(x0)
   
-  x1 <- MASS::mvrnorm(1, mu=x0, Sigma = t(S) %*% S)
+  U <- rnorm(p)
+  x1 <- round(c(x0 + S %*% U), 6)
   
   names(x1) <- names(x0)
   
