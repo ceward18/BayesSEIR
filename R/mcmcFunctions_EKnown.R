@@ -16,6 +16,8 @@ mcmcExp_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
                     betaPrior, rateEPrior, rateIPrior,
                     WAIC, progress, seed) {
   
+  set.seed(seed)
+  
   # useful things from data
   epiSize <- sum(Istar)
   popSizesInv <- N^(-1)
