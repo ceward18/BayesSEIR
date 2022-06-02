@@ -14,7 +14,7 @@ mcmcExp_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
                     niter, nburn, inits,
                     betaProVar,
                     betaPrior, rateEPrior, rateIPrior,
-                    WAIC, progress) {
+                    WAIC, progress, seed) {
   
   # useful things from data
   epiSize <- sum(Istar)

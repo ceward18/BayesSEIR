@@ -118,7 +118,8 @@
 mcmcSEIR <- function(dat, X, inits, niter, nburn,
                      infPeriodSpec = c('exp', 'PS', 'IDD'),
                      priors, iddFun = NULL, maxInf = NULL, dist = NULL,
-                     EKnown = FALSE, WAIC = FALSE, progressBar = FALSE) {
+                     EKnown = FALSE, WAIC = FALSE, progressBar = FALSE, 
+                     seed = NULL) {
   
   infPeriodSpec <- match.arg(infPeriodSpec, c('exp', 'PS', 'IDD'))
   
@@ -358,7 +359,7 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
                      iddFun, iddParamNames,
                      betaProVar, iddParamsProVar,
                      betaPrior, rateEPrior, iddParamsPrior,
-                     WAIC, progressBar)
+                     WAIC, progressBar, seed)
     }
     
     
