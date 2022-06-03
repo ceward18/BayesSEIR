@@ -6,7 +6,7 @@
 
 # single metropolis update (adaptive)
 # Vihola 2012
-MH_update_adapt <- function(x0, f, S, currentIter, nBurn, ...) {
+MH_update_adapt <- function(x0, f, S, currentIter, nAdapt, ...) {
   
   p <- length(x0)
   
@@ -29,8 +29,8 @@ MH_update_adapt <- function(x0, f, S, currentIter, nBurn, ...) {
   if (u < a) x <- x1
   else x <- x0
   
-  if (currentIter < nBurn) {
-    S <- ramcmc::adapt_S(S, U, min(1, exp(a)), currentIter - 1)
+  if (currentIter < nAdapt) {
+    S <- ramcmc::adapt_S(S, U, min(1, exp(a)), currentIter)
   }
   
   list(x = x, S = S)
