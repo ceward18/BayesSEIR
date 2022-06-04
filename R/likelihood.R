@@ -25,8 +25,6 @@ p_SE_IDD <- function(X, beta, popSizesInv, iddFun, iddParams, fullI, maxInf) {
   iddCurve <- do.call(iddFun, args = list(x = 1:maxInf,
                                             params = as.list(iddParams)))
   
-  do.call(dgamma, args = list(x = 1:20, shape = 4, rate = 1))
-  
   delta <- colByVec(fullI, iddCurve) * popSizesInv 
   
   theta <- theta_components * delta 
