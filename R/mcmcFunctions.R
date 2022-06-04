@@ -68,7 +68,7 @@ mcmcExp <- function(Istar, X, maxInf, S0, E0, I0, N,
     
     # transmission probability
     transProbUpdate <- MH_update_adapt(transProbPost[i - 1, ], fcTransProb, S, i, 
-                                       nAdapt = 5000,
+                                       nAdapt = 50000,
                                        susVec=susVec, Estar=Estar, X=X,  
                                        infVec=infVec, popSizesInv=popSizesInv,
                                        betaPrior=betaPrior)
@@ -203,7 +203,7 @@ mcmcPS <- function(Istar, X, maxInf, S0, E0, I0, N,
   for (i in 2:niter) {
     
     # transmission probability
-    transProbUpdate <- MH_update_adapt(transProbPost[i - 1, ], fcTransProb, S, i,  nAdapt = 5000,
+    transProbUpdate <- MH_update_adapt(transProbPost[i - 1, ], fcTransProb, S, i,  nAdapt = 50000,
                                        susVec=susVec, Estar=Estar, X=X,  
                                        infVec=infVec, popSizesInv=popSizesInv,
                                        betaPrior=betaPrior)
@@ -347,7 +347,7 @@ mcmcIDD <- function(Istar, X, maxInf, S0, E0, I0, N,
     
     # transmission probability
     transProbUpdate <- MH_update_adapt(transProbPost[i - 1, ], fcTransProbIDD, 
-                                       S, i,  nAdapt = 5000,
+                                       S, i,  nAdapt = 50000,
                                        susVec=susVec, Estar=Estar, X=X,  
                                        popSizesInv=popSizesInv, iddFun=iddFun,
                                        betaNames=betaNames, iddParamNames=iddParamNames, 
