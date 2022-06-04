@@ -284,7 +284,7 @@ mcmcIDD_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
   
   # initialize covariance for transmission probability proposal
   sigmaProp <- diag(abs(c(betaProVar, iddParamsProVar)), ncol(transProbPost))
-  S <- round(chol(sigmaProp), 9)
+  S <- round(chol(sigmaProp), 8)
   
   # initialize storage of log-likelihood if WAIC is requested
   if (WAIC) {

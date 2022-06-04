@@ -10,8 +10,8 @@ MH_update_adapt <- function(x0, f, S, currentIter, nAdapt, ...) {
   
   p <- length(x0)
   
-  U <- round(rnorm(p), 9)
-  x1 <- round(c(x0 + S %*% U), 9)
+  U <- round(rnorm(p), 8)
+  x1 <- round(c(x0 + S %*% U), 8)
   
   names(x1) <- names(x0)
   
@@ -31,7 +31,7 @@ MH_update_adapt <- function(x0, f, S, currentIter, nAdapt, ...) {
   
   if (currentIter < nAdapt) {
     S <- ramcmc::adapt_S(S, U, min(1, exp(a)), currentIter)
-    S <- round(S, 9)
+    S <- round(S, 8)
   }
   
   list(x = x, S = S)
