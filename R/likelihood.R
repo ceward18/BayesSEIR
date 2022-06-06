@@ -72,6 +72,7 @@ f_PS <- function(fullMat, fullStar, dist, psParams, maxLength) {
   
   pi_IRVec <- psProbVec(maxInf=maxLength, dist=dist, psParams=as.list(psParams))
   pi_IRVec[zapsmall(pi_IRVec)==1] <- 0.9999
+  pi_IRVec[which(pi_IRVec == 0)] <- min(pi_IRVec[-which(pi_IRVec == 0)])
   
   # sum over locations and time
   fullVec <- colSums(fullMat)
