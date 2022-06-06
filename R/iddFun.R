@@ -28,8 +28,8 @@ dgammaIDD <- function(x, params, getParams = F) {
   
   # check that shape and rate are positive 
   # this will cause negative proposals to be automatically rejected
-  if (shape < 0) stop("shape must be positive")
-  if (rate < 0) stop("rate must be positive")
+  if (shape <= 0) stop("shape must be positive")
+  if (rate <= 0) stop("rate must be positive")
   
   dgamma(x, shape, rate)
 }
@@ -58,7 +58,7 @@ dlnormIDD <- function(x, params, getParams = F) {
   meanlog <- params$meanlog
   sdlog <- params$sdlog
   
-  if (sdlog < 0) stop("sdlog must be positive")
+  if (sdlog <= 0) stop("sdlog must be positive")
   
   dlnorm(x, meanlog, sdlog)
 }
