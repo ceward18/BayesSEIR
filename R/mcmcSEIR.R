@@ -209,7 +209,7 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
       stop('invalid initial values')
     }
     
-    betaProVar <- inits$beta/3
+    betaProVar <- inits$beta / 4
     
     maxInf <- ceiling(qexp(0.99, inits$rateI)) + 10
     
@@ -272,8 +272,8 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
     # initial values for psParams must match with specified distribution
     inits$psParams <- unlist(psParamsCheck(inits$psParams, dist) )
     
-    betaProVar <- inits$beta/3
-    psParamsProVar <- unlist(inits$psParams) / 4
+    betaProVar <- inits$beta / 4
+    psParamsProVar <- unlist(inits$psParams) / 5
     
     if (!EKnown) {
       mcmcPS(Istar, X, maxInf, S0, E0, I0, N, 
@@ -351,8 +351,8 @@ mcmcSEIR <- function(dat, X, inits, niter, nburn,
     
     
     
-    betaProVar <- inits$beta/3
-    iddParamsProVar <- unlist(inits$iddParams)/3
+    betaProVar <- inits$beta / 4
+    iddParamsProVar <- unlist(inits$iddParams) / 4
     
     if (!EKnown) {
       mcmcIDD(Istar, X, maxInf, S0, E0, I0, N, 

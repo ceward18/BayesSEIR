@@ -40,7 +40,8 @@ mcmcExp_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
   rateIPost[1] <- inits$rateI
   
   # initialize covariance for transmission probability proposal
-  S <- diag(betaProVar, ncol(transProbPost))
+  sigmaProp <- diag(abs(betaProVar), ncol(transProbPost))
+  S <- round(chol(sigmaProp), 8)
   
   # initialize storage of log-likelihood if WAIC is requested
   if (WAIC) {
@@ -60,7 +61,7 @@ mcmcExp_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
     
     # transmission probability
     transProbUpdate <- MH_update_adapt(transProbPost[i - 1, ], fcTransProb, S, i, 
-                                       nAdapt = 50000,
+                                       nAdapt=niter,
                                        susVec=susVec, Estar=Estar, X=X,  
                                        infVec=infVec, popSizesInv=popSizesInv,
                                        betaPrior=betaPrior)
@@ -158,7 +159,8 @@ mcmcPS_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
   psParamPost[1,] <- inits$psParams
   
   # initialize covariance for transmission probability proposal
-  S <- diag(betaProVar, ncol(transProbPost))
+  sigmaProp <- diag(abs(betaProVar), ncol(transProbPost))
+  S <- round(chol(sigmaProp), 8)
   
   # initialize storage of log-likelihood if WAIC is requested
   if (WAIC) {
@@ -179,7 +181,7 @@ mcmcPS_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
     
     # transmission probability
     transProbUpdate <- MH_update_adapt(x0=transProbPost[i - 1, ], f=fcTransProb, 
-                                       S=S, currentIter=i,  nAdapt = 50000,
+                                       S=S, currentIter=i, nAdapt=niter,
                                        susVec=susVec, Estar=Estar, X=X,  
                                        infVec=infVec, popSizesInv=popSizesInv,
                                        betaPrior=betaPrior)
@@ -306,7 +308,7 @@ mcmcIDD_EKnown <- function(Estar, Istar, X, maxInf, S0, E0, I0, N,
     
     # transmission probability
     transProbUpdate <- MH_update_adapt(transProbPost[i - 1, ], fcTransProbIDD, 
-                                       S, i,  nAdapt = 50000,
+                                       S, i, nAdapt=niter,
                                        susVec=susVec, Estar=Estar, X=X,  
                                        popSizesInv=popSizesInv, iddFun=iddFun,
                                        betaNames=betaNames, iddParamNames=iddParamNames, 
